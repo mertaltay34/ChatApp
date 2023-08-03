@@ -18,8 +18,31 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // This delegate does not imply the connecting scene or session are new (see `application:configurationForConnectingSceneSession` instead).
         guard let windowsScene = (scene as? UIWindowScene) else { return }
         window = UIWindow(windowScene: windowsScene)
-        window?.rootViewController = UINavigationController(rootViewController: LoginViewController())
+        window?.rootViewController = configureNavigationController(rootViewController: HomeViewController())
         window?.makeKeyAndVisible()
+    }
+    
+    private func configureNavigationController(rootViewController: UIViewController) -> UINavigationController {
+        let gradient = CAGradientLayer()
+        gradient.colors = [UIColor.systemBlue.cgColor, UIColor.systemBlue.cgColor, UIColor.systemPink.cgColor] // 2 kere mavi yazmamız üst tarafın daha yoğun mavi ile başlamasını sağlıyor
+        gradient.frame = .init(x: 0, y: 0, width: UIScreen.main.bounds.height * 2, height: 64)
+        let controller = UINavigationController(rootViewController: rootViewController)
+        let apperance = UINavigationBarAppearance()
+        apperance.configureWithDefaultBackground()
+        apperance.backgroundImage = self.image(fromLayer: gradient)
+        controller.navigationBar.standardAppearance = apperance
+        controller.navigationBar.compactAppearance = apperance
+        controller.navigationBar.scrollEdgeAppearance = apperance
+        controller.navigationBar.compactScrollEdgeAppearance = apperance
+        return controller
+    }
+    
+    func image(fromLayer layer: CALayer) -> UIImage {  // navbar backgroung image hazırlamak için hazır bir fonksiyon
+        UIGraphicsBeginImageContext(layer.frame.size)
+        layer.render(in: UIGraphicsGetCurrentContext()!)
+        let outputImage = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        return outputImage!
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {

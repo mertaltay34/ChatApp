@@ -7,6 +7,7 @@
 
 import UIKit
 import SnapKit
+import JGProgressHUD
 
 class LoginViewController: UIViewController {
     
@@ -20,7 +21,7 @@ class LoginViewController: UIViewController {
         imageview.tintColor = .white
         return imageview
     }()
-    private lazy var emailContainerView: AuthenticationInputView = {
+    private lazy var emailContainerView: AuthenticationInputView = { // lazy var yapmamızın sebebi emailTextField ın oluşturulduğunu bilmemesinden kaynaklı hata vermesi oluyor. eğer oluşturulmadıysa bile oluşturulmasını bekle demiş oluyoruz.
         let containerView = AuthenticationInputView(image: UIImage(systemName: "envelope")!, textField: emailTextField)
         return containerView
     }()
@@ -36,7 +37,7 @@ class LoginViewController: UIViewController {
         return textField
     }()
     private var stackView = UIStackView()
-    private let loginButton: UIButton = {
+    private lazy var loginButton: UIButton = {
         let button = UIButton(type: .system)
         button.setTitle("Log In", for: .normal)
         button.setTitleColor(UIColor.white, for: .normal)
@@ -44,6 +45,7 @@ class LoginViewController: UIViewController {
         button.isEnabled = false
         button.titleLabel?.font = UIFont.preferredFont(forTextStyle: .title3)
         button.layer.cornerRadius = 7
+        button.addTarget(self, action: #selector(handleLoginButton), for: .touchUpInside)
         return button
     }()
     private lazy var switchToRegistrationPage: UIButton = {
@@ -64,6 +66,19 @@ class LoginViewController: UIViewController {
 }
     //MARK: - Selector
 extension LoginViewController {
+    @objc private func handleLoginButton(_ sender: UIButton){
+        guard let emailText = emailTextField.text else { return }
+        guard let passwordText = passwordTextField.text else { return }
+        showProgressHud(showProgress: true)
+         AuthenticationService.login(withEmail: emailText, password: passwordText) { result, error in
+            if let error = error {
+                print("Error: \(error.localizedDescription)")
+                self.showProgressHud(showProgress: false)
+            }
+             self.showProgressHud(showProgress: false)
+            self.dismiss(animated: true) // giriş yapıldıysa üstteki sayfayı kaldırır ve homeviewcontroller sayfasına döner
+        }
+    }
     @objc private func handleGoToRegisterView(_ sender: UIButton) {
         let controller = RegisterViewController()
         self.navigationController?.pushViewController(controller, animated: true)

@@ -77,46 +77,28 @@ class RegisterViewController: UIViewController {
 }
     //MARK: Selectors
 extension RegisterViewController {
+    @objc private func handlekeyboardWillHideNotification(){
+        self.view.frame.origin.y = 0
+    }
+    @objc private func handlekeyboardWillShowNotification(){
+        self.view.frame.origin.y = -110 // klavye açıldığında register butonunun gözükmesi için y ekseninde yukarı doğru kaydırma yapıldı
+    }
     @objc private func handleRegisterButton(_ sender: UIButton) {
         guard let emailText = emailTextField.text else { return }
         guard let nameText = nameTextField.text else { return }
         guard let usernameText = usernameTextField.text else { return }
         guard let passwordText = passwordTextField.text else { return }
         guard let profileImage = profileImageToUpload else { return }
-
-        let photoName = UUID().uuidString
-        guard let profileData = profileImage.jpegData(compressionQuality: 0.5) else { return }
-        let referance = Storage.storage().reference(withPath: "media/profile_image/\(photoName).png")
-        referance.putData(profileData) { storageMeta, error in
+        let user = AuthenticationServiceUser(emailText: emailText, nameText: nameText, usernameText: usernameText, passwordText: passwordText)
+        self.showProgressHud(showProgress: true)
+        AuthenticationService.register(withUser: user , image: profileImage) { error in
             if let error = error {
                 print("Error: \(error.localizedDescription)")
+                self.showProgressHud(showProgress: false)
+                return 
             }
-            referance.downloadURL { url, error in
-                if let error = error {
-                    print("Error: \(error.localizedDescription)")
-                }
-                guard let profileImageUrl = url?.absoluteString else { return }
-                Auth.auth().createUser(withEmail: emailText, password: passwordText) { result, error in
-                    if let error = error {
-                        print("Error: \(error.localizedDescription)")
-                    }
-                    guard let userUid = result?.user.uid else { return  }
-                    let data = [
-                        "email"         : emailText,
-                        "name"          : nameText,
-                        "username"       : usernameText,
-                        "profileImageUrl" : profileImageUrl,
-                        "uid"           : userUid
-                    ] as [String : Any]
-                    Firestore.firestore().collection("users").document(userUid).setData(data) { error in
-                        if let error = error {
-                            print("Error: \(error.localizedDescription)")
-                        }
-                        print("Successfully")
-                    }
-                    
-                }
-            }
+            self.showProgressHud(showProgress: false)
+            self.dismiss(animated: true)
         }
         
     }
@@ -143,6 +125,10 @@ extension RegisterViewController {
 }
     //MARK: Helpers
 extension RegisterViewController {
+    private func configureSetupKeyboard(){
+        NotificationCenter.default.addObserver(self, selector: #selector(handlekeyboardWillShowNotification), name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(handlekeyboardWillHideNotification), name: UIResponder.keyboardWillHideNotification, object: nil)
+    }
     private func registerButtonStatus() {
         if viewModel.status{
             registerButton.isEnabled = true
@@ -153,6 +139,7 @@ extension RegisterViewController {
         }
     }
     private func style() {
+        configureSetupKeyboard()
         configureGradientLayer()
         self.navigationController?.navigationBar.isHidden = true
         //stackview
