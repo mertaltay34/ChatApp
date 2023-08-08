@@ -13,14 +13,19 @@ class HomeViewController: UIViewController {
     private var messageButton: UIBarButtonItem!
     private var newMessageButton: UIBarButtonItem!
     private var container = Container()
-    private var viewControllers: [UIViewController] = [MessageViewController(), NewMessageViewController()]
+    private let messageViewController = NewMessageViewController()
+    private lazy var viewControllers: [UIViewController] = [MessageViewController(), messageViewController]
     //MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         authenticationStatus()
+//        signOut()
         style()
         addSubview()
         layout()
+    }
+    override func viewWillAppear(_ animated: Bool) {
+        handleMessageButton()
     }
 }
     //MARK: - Selectors
@@ -30,6 +35,8 @@ extension HomeViewController{
         self.container.addChildViewController(viewControllers[0])
         self.viewControllers[0].view.alpha = 0
         UIView.animate(withDuration: 1) {
+            self.messageButton.customView?.alpha = 1
+            self.newMessageButton.customView?.alpha = 0.5
             self.viewControllers[0].view.alpha = 1
             self.viewControllers[1].view.frame.origin.x = -1000 // kenara kayıp gitmiş olacak
         } completion: { _ in
@@ -42,6 +49,8 @@ extension HomeViewController{
         self.container.addChildViewController(viewControllers[1])
         self.viewControllers[1].view.alpha = 0
         UIView.animate(withDuration: 1) {
+            self.messageButton.customView?.alpha = 0.5
+            self.newMessageButton.customView?.alpha = 1
             self.viewControllers[1].view.alpha = 1
             self.viewControllers[0].view.frame.origin.x = +1000 // kenara kayıp gitmiş olacak
         } completion: { _ in
@@ -56,7 +65,7 @@ extension HomeViewController{
         let button = UIButton(type: .system)
         button.setTitle(text, for: .normal)
         button.setTitleColor(UIColor.white, for: .normal)
-        button.titleLabel?.font = UIFont.boldSystemFont(ofSize: 22)
+        button.titleLabel?.font = UIFont.boldSystemFont(ofSize: 25)
         button.addTarget(self, action: selector, for: .touchUpInside)
         return button
     }
@@ -81,8 +90,10 @@ extension HomeViewController{
         view.backgroundColor = .white
         messageButton = UIBarButtonItem(customView: configureBarItem(text: "Message", selector: #selector(handleMessageButton)))
         newMessageButton = UIBarButtonItem(customView: configureBarItem(text: "New Message", selector: #selector(handleNewMessageButton)))
+        self.messageViewController.delegate = self
         // container
         configureContainer()
+        handleMessageButton()
     }
     private func addSubview(){
         self.navigationItem.leftBarButtonItems = [messageButton, newMessageButton]
@@ -101,4 +112,11 @@ extension HomeViewController{
         
     }
 }
-
+extension HomeViewController: NewMessageViewControllerProtocol{
+    func goToChatView(user: User) {
+        let controller = ChatViewController(user: user)
+        self.navigationController?.pushViewController(controller, animated: true)
+    }
+    
+    
+}

@@ -30,6 +30,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let apperance = UINavigationBarAppearance()
         apperance.configureWithDefaultBackground()
         apperance.backgroundImage = self.image(fromLayer: gradient)
+        apperance.titleTextAttributes = [.foregroundColor: UIColor.white, .font :  UIFont.preferredFont(forTextStyle: .title2)]
         controller.navigationBar.standardAppearance = apperance
         controller.navigationBar.compactAppearance = apperance
         controller.navigationBar.scrollEdgeAppearance = apperance

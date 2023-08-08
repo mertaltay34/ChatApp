@@ -8,9 +8,26 @@
 import UIKit
 
 class MessageViewController: UIViewController {
+    //MARK: - Properties
+    //MARK: - Lifecyle
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .blue 
+        style()
+        addSubview()
+        layout()
+
     }
 }
+    //MARK: Helpers
+extension MessageViewController{
+    private func style(){
+        view.backgroundColor = .blue
+    }
+    private func addSubview(){
+        
+    }
+    private func layout(){
+        
+    }
 
+}
