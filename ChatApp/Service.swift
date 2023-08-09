@@ -20,6 +20,27 @@ struct Service{
             completion(users)
         }
     }
+    static func fetchUser(uid: String, completion: @escaping(User) -> Void) {
+        Firestore.firestore().collection("users").document(uid).getDocument { snapshot, error in
+            guard let data = snapshot?.data() else { return }
+            let user = User(data: data)
+            completion(user)
+        }
+    }
+    static func fetchLastUsers(completion: @escaping([LastUser]) -> Void){
+        var lastUsers = [LastUser]()
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        Firestore.firestore().collection("messages").document(uid).collection("last-messages").order(by: "timestamp").addSnapshotListener { snapshot, error in
+            snapshot?.documentChanges.forEach({ value in
+                let data = value.document.data()
+                let message = Message(data: data)
+                self.fetchUser(uid: message.toId) { user in
+                    lastUsers.append(LastUser(user: user, message: message))
+                    completion(lastUsers)
+                }
+            })
+        }
+    }
     static func sendMessage(message: String, toUser: User, completion: @escaping(Error?) -> Void){
         guard let currentUid = Auth.auth().currentUser?.uid else { return }
         let data = [
@@ -31,6 +52,10 @@ struct Service{
         // mesajı gönderirken: messagesları ekleyeceğimizi belirtiyoruz. curentUid adı altında bir döküman oluşturuyoruz. bunun içerisine de bir collection açıyoruz.  hangi dökümanı ekleyeceğimizi belirtiyoruz. birde completion açıyoruz. bu açtığımız completion yapısı içerisine aynı işlemi tersten yapıyoruz çünkü ben birisiyle mesajlaşırken hem benim ekranımda hemde onun ekranında o mesajların görüntülenmesi gerekmekte.
         Firestore.firestore().collection("messages").document(currentUid).collection(toUser.uid).addDocument(data: data) { error in
             Firestore.firestore().collection("messages").document(toUser.uid).collection(currentUid).addDocument(data: data, completion: completion)
+            
+            Firestore.firestore().collection("messages").document(currentUid).collection("last-messages").document(toUser.uid).setData(data)
+            
+            Firestore.firestore().collection("messages").document(toUser.uid).collection("last-messages").document(currentUid).setData(data)
         }
     }
     

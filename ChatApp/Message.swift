@@ -17,7 +17,7 @@ struct Message {
     var currentUser: Bool
     init(data: [String : Any]) {
         self.text = data["text"] as? String ?? ""
-        self.toId = data["toId "] as? String ?? ""
+        self.toId = data["toId"] as? String ?? ""
         self.fromId = data["fromId"] as? String ?? ""
         self.timestamp = data["timestap"] as? Timestamp ?? Timestamp(date: Date())
         self.currentUser = fromId == Auth.auth().currentUser?.uid
