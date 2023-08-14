@@ -7,14 +7,18 @@
 
 import UIKit
 import FirebaseAuth
+import SnapKit
 
 class HomeViewController: UIViewController {
     //MARK: - Properties
     private var messageButton: UIBarButtonItem!
     private var newMessageButton: UIBarButtonItem!
     private var container = Container()
-    private let messageViewController = NewMessageViewController()
-    private lazy var viewControllers: [UIViewController] = [MessageViewController(), messageViewController]
+    private let newMessageViewController = NewMessageViewController()
+    private let messageViewController = MessageViewController()
+    private lazy var viewControllers: [UIViewController] = [messageViewController, newMessageViewController]
+    private let profileView = ProfileView()
+    private var isProfileViewActive: Bool = false
     //MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -23,6 +27,7 @@ class HomeViewController: UIViewController {
         style()
         addSubview()
         layout()
+        fetchUser()
     }
     override func viewWillAppear(_ animated: Bool) {
         handleMessageButton()
@@ -30,6 +35,16 @@ class HomeViewController: UIViewController {
 }
     //MARK: - Selectors
 extension HomeViewController{
+    @objc private func handleProfileButton(_ sender: UIBarButtonItem){
+        UIView.animate(withDuration: 0.5) {
+            if self.isProfileViewActive{
+                self.profileView.frame.origin.x = self.view.frame.width
+            } else {
+                self.profileView.frame.origin.x = self.view.frame.width * 0.4
+            }
+        }
+        self.isProfileViewActive.toggle()
+    }
     @objc private func handleMessageButton(){
         if self.container.children.first == MessageViewController() { return }
         self.container.addChildViewController(viewControllers[0])
@@ -61,6 +76,39 @@ extension HomeViewController{
 }
     //MARK: - Helpers
 extension HomeViewController{
+    private func fetchUser(){
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        Service.fetchUser(uid: uid) { user in
+            self.profileView.user = user
+        }
+    }
+    private func style(){
+        view.backgroundColor = .white
+        messageButton = UIBarButtonItem(customView: configureBarItem(text: "Message", selector: #selector(handleMessageButton)))
+        newMessageButton = UIBarButtonItem(customView: configureBarItem(text: "New Message", selector: #selector(handleNewMessageButton)))
+        self.newMessageViewController.delegate = self
+        self.messageViewController.delegate = self
+        self.navigationController?.navigationBar.tintColor = .white
+        // container
+        configureContainer()
+        handleMessageButton()
+        profileView.delegate = self
+        profileView.layer.cornerRadius = 20
+        profileView.layer.maskedCorners = [.layerMinXMinYCorner, .layerMinXMaxYCorner]
+    }
+    private func addSubview(){
+        self.navigationItem.leftBarButtonItems = [messageButton, newMessageButton]
+        self.navigationItem.rightBarButtonItem = UIBarButtonItem(image: UIImage(systemName: "person"), style: .done, target: self , action: #selector(handleProfileButton))
+        view.addSubview(profileView)
+    }
+    private func layout(){
+        profileView.snp.makeConstraints { make in
+            make.top.equalTo(view.safeAreaLayoutGuide)
+            make.leading.equalTo(view.snp.trailing)  // = profileView.leadingAnchor.constraint(equalTo: view.trailingAnchor)
+            make.bottom.equalTo(view.snp.bottom)
+            make.width.equalTo(view.frame.width * 0.6)
+        }
+    }
     private func configureBarItem(text: String, selector: Selector) -> UIButton{
         let button = UIButton(type: .system)
         button.setTitle(text, for: .normal)
@@ -86,21 +134,6 @@ extension HomeViewController{
             
         }
     }
-    private func style(){
-        view.backgroundColor = .white
-        messageButton = UIBarButtonItem(customView: configureBarItem(text: "Message", selector: #selector(handleMessageButton)))
-        newMessageButton = UIBarButtonItem(customView: configureBarItem(text: "New Message", selector: #selector(handleNewMessageButton)))
-        self.messageViewController.delegate = self
-        // container
-        configureContainer()
-        handleMessageButton()
-    }
-    private func addSubview(){
-        self.navigationItem.leftBarButtonItems = [messageButton, newMessageButton]
-    }
-    private func layout(){
-        
-    }
     private func configureContainer(){
         guard let containerView = container.view else { return }
         view.addSubview(containerView)
@@ -109,14 +142,27 @@ extension HomeViewController{
             make.leading.trailing.equalToSuperview()
             make.bottom.equalToSuperview()
         }
-        
     }
-}
-extension HomeViewController: NewMessageViewControllerProtocol{
-    func goToChatView(user: User) {
+    private func showChat(user: User){
         let controller = ChatViewController(user: user)
         self.navigationController?.pushViewController(controller, animated: true)
     }
-    
-    
+}
+    //MARK: - NewMessageViewControllerProtocol
+extension HomeViewController: NewMessageViewControllerProtocol{
+    func goToChatView(user: User) {
+        self.showChat(user: user)
+    }
+}
+    //MARK: - MessageViewControllerProtocol
+extension HomeViewController: MessageViewControllerProtocol{
+    func showChatViewController(_ messageViewController: MessageViewController, user: User) {
+        self.showChat(user: user)
+    }
+}
+    //MARK: -  ProfileViewProtocol
+extension HomeViewController:  ProfileViewProtocol{
+    func signOutProfile() {
+        self.signOut()
+    }
 }

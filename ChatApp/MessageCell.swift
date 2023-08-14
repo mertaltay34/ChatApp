@@ -2,20 +2,18 @@
 //  MessageCell.swift
 //  ChatApp
 //
-//  Created by Mert Altay on 8.08.2023.
+//  Created by Mert Altay on 14.08.2023.
 //
 
 import UIKit
 import SnapKit
 import SDWebImage
 
-class MessageCell: UICollectionViewCell {
+class MessageCell: UITableViewCell{
     //MARK: - Properties
-    var messageContainerViewLeft: NSLayoutConstraint!
-    var messageContainerViewRight: NSLayoutConstraint!
-    var message: Message? {
+    var lastUser: LastUser?{
         didSet{
-            configure()
+            configureMessageCell()
         }
     }
     private let profileImageView: UIImageView = {
@@ -26,25 +24,28 @@ class MessageCell: UICollectionViewCell {
         imageView.layer.cornerRadius = 34 / 2 // dairesel göstermek için 2 ye bölüyoruz.
         return imageView
     }()
-    private let messageContainerView: UIView = {
-        let containerView = UIView()
-        containerView.backgroundColor = .systemBlue
-        return containerView
+    private let usernameLabel: UILabel = {
+        let label = UILabel()
+        label.font = UIFont.systemFont(ofSize: 14)
+        return label
     }()
-    private let messageTextView: UITextView = {
-        let textView = UITextView()
-        textView.backgroundColor = .clear
-        textView.isScrollEnabled = false
-        textView.isEditable = false
-        textView.font = UIFont.preferredFont(forTextStyle: .title3)
-        textView.text = "Message"
-        textView.textColor = .white
-        return textView
+    private let lastMessageLabel: UILabel = {
+        let label = UILabel()
+        label.font = UIFont.systemFont(ofSize: 12)
+        return label
+    }()
+    private var stackView = UIStackView()
+    private let timesLabel: UILabel = {
+        let label = UILabel()
+        label.font = UIFont.systemFont(ofSize: 14)
+        label.textColor = .black
+        label.text = "5:5"
+        return label
     }()
     //MARK: - Lifecyle
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        style()
+    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
+        super.init(style: style, reuseIdentifier: reuseIdentifier)
+        setup()
         addSubviews()
         layout()
     }
@@ -55,51 +56,40 @@ class MessageCell: UICollectionViewCell {
 }
     //MARK: - Helpers
 extension MessageCell{
-    private func style(){
-        messageContainerView.layer.cornerRadius = 10
-        messageContainerView.layer.maskedCorners = [.layerMinXMinYCorner,.layerMaxXMinYCorner,.layerMaxXMaxYCorner]
+    private func setup(){
+        profileImageView.layer.cornerRadius = 55 / 2
+        stackView = UIStackView(arrangedSubviews: [usernameLabel, lastMessageLabel])
+        stackView.axis = .vertical
+        stackView.spacing = 4
     }
     private func addSubviews(){
         addSubview(profileImageView)
-        addSubview(messageContainerView)
-        addSubview(messageTextView)
+        addSubview(stackView)
+        addSubview(timesLabel)
     }
     private func layout(){
         profileImageView.snp.makeConstraints { make in
-            make.height.width.equalTo(34)
             make.centerY.equalToSuperview()
-            make.leading.equalToSuperview().offset(4)
+            make.leading.equalToSuperview().offset(12)
+            make.height.width.equalTo(55)
         }
-        messageContainerView.snp.makeConstraints { make in
-            make.top.equalToSuperview().offset(4)
-            make.bottom.equalToSuperview()
-            make.width.lessThanOrEqualTo(300)
+        stackView.snp.makeConstraints { make in
+            make.centerY.equalToSuperview()
+            make.leading.equalTo(profileImageView.snp.trailing).offset(8)
+            make.trailing.equalToSuperview().offset(-12)
+          //  trailingAnchor.constraint(equalTo: stackView.trailingAnchor, constant: 12) üstteki ile aynı işlemi yapar
         }
-        self.messageContainerViewLeft = messageContainerView.leadingAnchor.constraint(equalTo: profileImageView.trailingAnchor, constant: 8)
-        self.messageContainerViewLeft.isActive = false
-        self.messageContainerViewRight = messageContainerView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8)
-        self.messageContainerViewRight.isActive = false
-        
-        messageTextView.snp.makeConstraints { make in
-            make.top.equalTo(messageContainerView.snp.top)
-            make.leading.equalTo(messageContainerView.snp.leading)
-            make.trailing.equalTo(messageContainerView.snp.trailing)
-            make.bottom.equalTo(messageContainerView.snp.bottom)
+        timesLabel.snp.makeConstraints { make in
+            make.top.equalToSuperview().offset(12)
+            make.trailing.equalToSuperview().offset(-8)
         }
     }
-    private func configure(){
-        guard let message = self.message else { return }
-        let viewModel = MessageViewModel(message: message)
-        messageTextView.text = message.text
-        messageContainerView.backgroundColor = viewModel.messageBackgroundColor
-        messageContainerViewRight.isActive = viewModel.currentUserActive
-        messageContainerViewLeft.isActive = !viewModel.currentUserActive
-        profileImageView.isHidden = viewModel.currentUserActive
-        profileImageView.sd_setImage(with: viewModel.profileImageView)
-        if viewModel.currentUserActive{
-            messageContainerView.layer.maskedCorners = [.layerMinXMinYCorner,.layerMaxXMinYCorner,.layerMinXMaxYCorner]
-        } else{
-            messageContainerView.layer.maskedCorners = [.layerMinXMinYCorner,.layerMaxXMinYCorner,.layerMaxXMaxYCorner]
-        }
+    private func configureMessageCell(){
+        guard let lastUser = self.lastUser else { return }
+        let viewModel = MessageViewModel(lastUser: lastUser)
+        self.usernameLabel.text = lastUser.user.username
+        self.lastMessageLabel.text = lastUser.message.text
+        self.profileImageView.sd_setImage(with: viewModel.profileImage)
+        self.timesLabel.text = viewModel.timestampString
     }
 }
